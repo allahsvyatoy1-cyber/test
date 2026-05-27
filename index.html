@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" class="lenis">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AETHER — Voyages Beyond Earth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./vendor/lenis.css" />
+<style>
+  :root {
+    --bg: #04050a;
+    --ink: #eef1ff;
+    --muted: #9298be;
+    --line: rgba(255, 255, 255, 0.10);
+    --violet: #7c5cff;
+    --cyan: #38e1ff;
+    --magenta: #ff5cab;
+    --grad: linear-gradient(110deg, var(--violet), var(--cyan) 55%, var(--magenta));
+    --font-display: "Sora", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html.lenis, html.lenis body { height: auto; }
+  .lenis.lenis-smooth { scroll-behavior: auto !important; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased; overflow-x: hidden; line-height: 1.6;
+  }
+  ::selection { background: var(--violet); color: #fff; }
+
+  /* fixed ambiance */
+  #stars, #scene { position: fixed; inset: 0; }
+  #stars { z-index: 0; }
+  #scene { z-index: 1; }
+  .bg-glow {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(50vw 50vw at 50% 46%, rgba(124, 92, 255, 0.14), transparent 60%),
+      radial-gradient(60vw 60vw at 80% 80%, rgba(56, 225, 255, 0.08), transparent 60%),
+      radial-gradient(60vw 60vw at 15% 85%, rgba(255, 92, 171, 0.08), transparent 60%);
+  }
+  .grain {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .cursor-glow {
+    position: fixed; top: 0; left: 0; width: 460px; height: 460px;
+    margin: -230px 0 0 -230px; border-radius: 50%; z-index: 3;
+    pointer-events: none; mix-blend-mode: screen; opacity: 0; transition: opacity .4s;
+    background: radial-gradient(circle, rgba(124, 92, 255, 0.18), transparent 65%);
+  }
+  .progress {
+    position: fixed; top: 0; left: 0; height: 3px; width: 100%;
+    transform: scaleX(0); transform-origin: 0 50%;
+    background: var(--grad); z-index: 60; box-shadow: 0 0 18px rgba(124, 92, 255, 0.7);
+  }
+
+  /* fixed chrome */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px clamp(20px, 5vw, 64px); pointer-events: none;
+  }
+  .topbar > * { pointer-events: auto; }
+  .brand {
+    font-family: var(--font-display); font-weight: 800; letter-spacing: .32em;
+    font-size: 18px; display: flex; align-items: center; gap: 12px;
+  }
+  .brand .dot {
+    width: 12px; height: 12px; border-radius: 50%; background: var(--grad);
+    box-shadow: 0 0 16px var(--violet); animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(.6);opacity:.5} }
+  .nav-cta {
+    border: 1px solid var(--line); padding: 10px 20px; border-radius: 100px;
+    font-size: 13px; color: var(--ink); background: rgba(255,255,255,.03);
+    text-decoration: none; transition: border-color .3s, background .3s;
+  }
+  .nav-cta:hover { border-color: var(--violet); background: rgba(124,92,255,.12); }
+
+  /* scene-progress dots */
+  .dots {
+    position: fixed; right: clamp(18px, 3vw, 40px); top: 50%; transform: translateY(-50%);
+    z-index: 50; display: flex; flex-direction: column; gap: 16px;
+  }
+  .dots b {
+    width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.2);
+    transition: all .4s ease; cursor: pointer;
+  }
+  .dots b.on { background: var(--cyan); box-shadow: 0 0 14px var(--cyan); transform: scale(1.35); }
+
+  /* ---------- the pinned stage ---------- */
+  .stage { height: 100vh; position: relative; overflow: hidden; }
+
+  .scene {
+    position: absolute; inset: 0; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    text-align: center; padding: 0 24px 13vh; pointer-events: none; visibility: hidden;
+  }
+  .scene .inner { max-width: 720px; pointer-events: auto; }
+
+  .eyebrow {
+    font-family: var(--font-display); font-size: 12px; letter-spacing: .4em;
+    text-transform: uppercase; color: var(--cyan);
+    display: inline-flex; align-items: center; gap: 12px; margin-bottom: 22px;
+  }
+  .eyebrow::before, .eyebrow.c::after { content: ""; width: 26px; height: 1px; background: var(--cyan); }
+  .gradient-text {
+    background: var(--grad); -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .scene h1 {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: clamp(64px, 16vw, 220px); line-height: .9; letter-spacing: -.04em;
+  }
+  .scene h2 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(34px, 6vw, 86px); line-height: 1; letter-spacing: -.03em;
+  }
+  .scene p {
+    color: var(--muted); font-size: clamp(15px, 1.5vw, 19px); margin-top: 22px;
+    max-width: 520px; margin-left: auto; margin-right: auto;
+  }
+  .actions { display: flex; gap: 16px; justify-content: center; margin-top: 38px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--font-display); font-weight: 600; font-size: 15px;
+    padding: 16px 30px; border-radius: 100px; text-decoration: none; cursor: pointer;
+    border: 1px solid transparent; transition: transform .3s, box-shadow .3s, border-color .3s;
+  }
+  .btn-primary { background: var(--grad); color: #06070d; box-shadow: 0 10px 40px -10px rgba(124, 92, 255, 0.8); }
+  .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 18px 50px -10px rgba(56, 225, 255, 0.7); }
+  .btn-ghost { border-color: var(--line); color: var(--ink); background: rgba(255,255,255,.02); }
+  .btn-ghost:hover { border-color: var(--cyan); transform: translateY(-3px); }
+
+  /* scroll hint (scene 0) */
+  .scroll-hint {
+    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    color: var(--muted); font-size: 11px; letter-spacing: .3em; text-transform: uppercase;
+    display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 6;
+  }
+  .scroll-hint .bar { width: 1px; height: 42px; background: linear-gradient(var(--cyan), transparent); }
+
+  footer {
+    height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; border-top: 1px solid var(--line); position: relative; z-index: 5;
+    color: var(--muted); font-size: 14px; text-align: center; background: var(--bg);
+  }
+  footer h3 { font-family: var(--font-display); font-size: clamp(28px, 5vw, 54px); color: var(--ink); font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <canvas id="stars"></canvas>
+  <canvas id="scene"></canvas>
+  <div class="bg-glow"></div>
+  <div class="grain"></div>
+  <div class="cursor-glow" id="cursorGlow"></div>
+
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span>AETHER</div>
+    <a href="#book" class="nav-cta" data-jump="4">Reserve a seat</a>
+  </div>
+
+  <div class="dots" id="dots">
+    <b data-jump="0" class="on"></b><b data-jump="1"></b><b data-jump="2"></b><b data-jump="3"></b><b data-jump="4"></b>
+  </div>
+
+  <!-- the whole experience is ONE pinned stage; scroll drives the object + scenes -->
+  <section class="stage" id="stage">
+    <div class="scene" data-scene="0">
+      <div class="inner">
+        <span class="eyebrow c">Private spaceflight · Est. 2031</span>
+        <h1>AETHER</h1>
+        <p>A handful of travelers, past the edge of the sky. Scroll to transform the journey.</p>
+        <div class="actions">
+          <a href="#" class="btn btn-primary">Begin your voyage</a>
+          <a href="#" class="btn btn-ghost" data-jump="1">Explore the craft</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene" data-scene="1">
+      <div class="inner">
+        <span class="eyebrow c">01 — The Overview</span>
+        <h2>Orbit, <span class="gradient-text">rewritten.</span></h2>
+        <p>Sixteen sunrises a day. The capsule wraps you in a single seamless sphere of glass and carbon, and the planet does the rest.</p>
+      </div>
+    </div>
+
+    <div class="scene" data-scene="2">
+      <div class="inner">
+        <span class="eyebrow c">02 — Life Systems</span>
+        <h2>Engineered to <span class="gradient-text">breathe.</span></h2>
+        <p>A closed loop coiled like DNA recycles every breath and drop. Self-healing, redundant, silent — the craft keeps you alive without you ever noticing.</p>
+      </div>
+    </div>
+
+    <div class="scene" data-scene="3">
+      <div class="inner">
+        <span class="eyebrow c">03 — The Structure</span>
+        <h2>Built for the <span class="gradient-text">dark.</span></h2>
+        <p>A carbon-titanium lattice rated to 1650°C on re-entry and absolute zero outside. Precision measured in microns, trust measured in lives.</p>
+      </div>
+    </div>
+
+    <div class="scene" data-scene="4">
+      <div class="inner" id="book">
+        <span class="eyebrow c">Seats are limited</span>
+        <h2>Your seat is <span class="gradient-text">waiting.</span></h2>
+        <p>Reservations open for the 2032 manifest. Twelve seats. One horizon.</p>
+        <div class="actions"><a href="#" class="btn btn-primary">Reserve a seat</a></div>
+      </div>
+    </div>
+
+    <div class="scroll-hint" id="scrollHint"><span>Scroll</span><span class="bar"></span></div>
+  </section>
+
+  <footer>
+    <div class="brand"><span class="dot"></span>AETHER</div>
+    <h3>Voyages beyond Earth.</h3>
+    <div>A fictional brand built to show GSAP ScrollTrigger · © 2032</div>
+  </footer>
+
+  <script src="./vendor/gsap.min.js"></script>
+  <script src="./vendor/ScrollTrigger.min.js"></script>
+  <script src="./vendor/lenis.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
